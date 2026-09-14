@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorteio de Times — Pelada</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --grass-dark: #0d2b1d; --grass: #1b4332; --grass-light: #2d6a4f;
+    --chalk: #f1faee; --chalk-dim: #b7c9c0; --flag: #ffd60a;
+    --ink: #081c15; --line: rgba(241,250,238,0.16);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; min-height: 100vh;
+    background: repeating-linear-gradient(0deg, var(--grass) 0px, var(--grass) 64px, var(--grass-light) 64px, var(--grass-light) 128px);
+    font-family: 'Segoe UI', 'Inter', system-ui, sans-serif; color: var(--chalk);
+    display: flex; justify-content: center; padding: 32px 16px 64px;
+  }
+
+  .wrap { width: 100%; max-width: 640px; }
+  header { text-align: center; margin-bottom: 28px; }
+
+  .eyebrow { font-size: 12px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--flag); font-weight: 700; }
+  h1 { font-family: 'Arial Black', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(32px, 8vw, 48px); margin: 6px 0 0; letter-spacing: -0.01em; text-shadow: 0 2px 0 var(--ink); }
+
+  .card { background: var(--ink); border: 2px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  label { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--chalk-dim); font-weight: 700; margin-bottom: 8px; }
+
+  textarea {
+    width: 100%; min-height: 160px; resize: vertical; background: rgba(241,250,238,0.04);
+    border: 1.5px dashed var(--line); border-radius: 10px; color: var(--chalk);
+    font-size: 15px; padding: 12px; line-height: 1.6; font-family: inherit;
+  }
+  textarea:focus { outline: 2px solid var(--flag); border-style: solid; }
+
+  .marcacao-titulo { display: flex; align-items: baseline; justify-content: space-between; margin-top: 18px; margin-bottom: 8px; }
+  .marcacao-dica { font-size: 12px; color: var(--chalk-dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips:empty::before { content: 'Digite os nomes acima pra poder marcar quem é melhor ou pior'; font-size: 13px; color: var(--chalk-dim); opacity: 0.7; }
+  
+  .chip-wrapper { display: inline-flex; align-items: center; border: 1.5px solid var(--line); border-radius: 999px; background: rgba(241,250,238,0.04); overflow: hidden; transition: all 0.12s ease; }
+  .chip-wrapper:hover { border-color: var(--chalk-dim); }
+  .chip { background: transparent; color: var(--chalk); border: none; padding: 7px 10px 7px 14px; font-size: 13px; cursor: pointer; outline: none; }
+  .btn-foto { background: rgba(255,255,255,0.08); border: none; border-left: 1px solid var(--line); color: var(--chalk); padding: 7px 10px; cursor: pointer; font-size: 12px; transition: background 0.2s; }
+  .btn-foto:hover { background: rgba(255,255,255,0.15); }
+  .btn-foto.tem-foto { background: rgba(45, 106, 79, 0.6); }
+
+  .chip-wrapper.melhor { background: rgba(255, 214, 10, 0.16); border-color: var(--flag); }
+  .chip-wrapper.melhor .chip { color: var(--flag); font-weight: 700; }
+  .chip-wrapper.melhor .btn-foto { border-left-color: rgba(255, 214, 10, 0.3); }
+  
+  .chip-wrapper.pior { background: rgba(255, 90, 95, 0.14); border-color: #ff5a5f; }
+  .chip-wrapper.pior .chip { color: #ff8f92; font-weight: 700; }
+  .chip-wrapper.pior .btn-foto { border-left-color: rgba(255, 90, 95, 0.3); }
+
+  .legenda { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--chalk-dim); }
+  .legenda span { display: inline-flex; align-items: center; gap: 5px; }
+
+  .controles-inferiores { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; flex-wrap: wrap; gap: 15px; }
+  .counter { display: flex; align-items: center; gap: 10px; background: rgba(241,250,238,0.04); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 16px; }
+  .counter span.label { font-size: 14px; color: var(--chalk-dim); white-space: nowrap; }
+  .counter button { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--grass-light); color: var(--chalk); font-size: 18px; cursor: pointer; }
+  .counter .n { min-width: 22px; text-align: center; font-weight: 900; font-size: 17px; }
+
+  .seletores { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .seletor-grupo { display: flex; flex-direction: column; gap: 5px; }
+  select { background: var(--ink); color: var(--chalk); border: 1.5px solid var(--line); padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 13px; outline: none; cursor: pointer; max-width: 180px;}
+
+  .grupo-narracao { display: flex; flex-direction: column; gap: 5px; background: rgba(241,250,238,0.04); padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px;}
+  .toggle-narracao { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--chalk); cursor: pointer; }
+  .toggle-narracao input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--flag); }
+  #seletorVoz { background: transparent; border: 1px solid var(--chalk-dim); padding: 4px; font-size: 11px; margin-top: 4px; display: block;}
+
+  .info { font-size: 13px; color: var(--chalk-dim); width: 100%; text-align: right; margin-top: 10px;}
+
+  .botoes-finais { display: flex; flex-direction: column; gap: 10px; margin-top: 30px; }
+  .botoes-row { display: flex; gap: 10px; }
+  
+  .btn-acao { display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 16px; font-size: 16px; font-weight: 900; font-style: italic; letter-spacing: 0.03em; text-transform: uppercase; background: var(--flag); color: var(--ink); border: none; border-radius: 10px; cursor: pointer; transition: transform 0.08s ease; }
+  .btn-acao:active { transform: scale(0.98); }
+  .btn-principal { margin-top: 22px; font-size: 18px; }
+  .btn-acao.voltar { background: var(--chalk); }
+  .btn-acao.btn-zap { background: #25D366; color: white; flex: 1; display: none; }
+  .btn-acao.btn-imagem { background: #3a86ff; color: white; flex: 1; display: none; }
+  
+  #btnRevelarCego { background: #ff5a5f; color: white; display: none; font-size: 22px; box-shadow: 0 4px 15px rgba(255, 90, 95, 0.4); margin-bottom: 20px;}
+
+  .erro { color: #ffb4a2; font-size: 13px; margin-top: 10px; display: none; }
+  #telaResultados { display: none; }
+
+  /* URNA CENTRAL */
+  #urnaSorteio { background: var(--ink); border: 2px solid var(--flag); border-radius: 14px; padding: 25px 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 0 25px rgba(255, 214, 10, 0.15); display: none; perspective: 1000px; }
+  .urna-titulo { color: var(--chalk-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; font-weight: 700; }
+  .urna-destino { font-size: 14px; color: var(--chalk-dim); margin-top: 10px; font-style: italic; }
+  #urnaNomeTexto { font-size: 36px; font-weight: 900; color: var(--flag); font-family: 'Arial Black', sans-serif; min-height: 50px; }
+
+  /* EFEITO CARTINHA 3D */
+  .carta-container { width: 180px; height: 260px; margin: 0 auto; position: relative; transition: transform 0.8s; transform-style: preserve-3d; display: none; }
+  .carta-container.girar { transform: rotateY(180deg) scale(1.1); }
+  .carta-container.tremer { animation: tremerCarta 0.5s infinite; }
+  .carta-frente, .carta-verso { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px solid var(--flag); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+  .carta-frente { background: linear-gradient(135deg, #111, #222); background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 10px, transparent 10px, transparent 20px); }
+  .carta-frente::after { content: '⚽'; font-size: 60px; opacity: 0.5; }
+  .carta-verso { background: linear-gradient(135deg, var(--flag), #ffa000); color: var(--ink); transform: rotateY(180deg); padding: 10px;}
+  
+  .carta-foto-perfil { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ink); margin-bottom: 8px; display: none; background: #fff;}
+  .carta-nome { font-size: 22px; font-weight: 900; font-family: 'Arial Black'; text-transform: uppercase; text-align: center; padding: 0 5px; word-break: break-all; line-height: 1.1;}
+  .carta-icon { font-size: 40px; margin-bottom: 10px; }
+
+  @keyframes tremerCarta {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px) rotate(-2deg); }
+    50% { transform: translateX(5px) rotate(2deg); }
+    75% { transform: translateX(-5px) rotate(-2deg); }
+    100% { transform: translateX(0); }
+  }
+
+  /* GRID DE TIMES */
+  .area-exportacao { padding: 10px; background: transparent; border-radius: 14px; }
+  #gridTimes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 10px; }
+  .time-card { background: var(--ink); border: 2px solid var(--line); border-radius: 14px; padding: 16px 18px; position: relative; overflow: hidden; }
+  .time-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--flag); }
+  .time-titulo { display: flex; align-items: center; gap: 10px; font-family: 'Arial Black', sans-serif; font-style: italic; font-weight: 900; font-size: 19px; margin-bottom: 15px; color: var(--flag); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+
+  ul.jogadores { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  ul.jogadores li { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.03); transition: all 0.3s ease; }
+  li.vazio { color: var(--chalk-dim); opacity: 0.35; background: transparent; border: 1px dashed var(--line);}
+  li.destaque-recebendo { background: rgba(255, 214, 10, 0.1); border: 1px solid var(--flag); transform: scale(1.02); }
+  li.revelado { background: rgba(45, 106, 79, 0.3); border: 1px solid var(--grass-light); animation: pulsarSucesso 0.5s ease; }
+  li.cego-secreto { background: #222; border: 1px dashed #555; color: #777; }
+  li.cego-secreto .nome { filter: blur(4px); }
+
+  .li-foto { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; display: none; border: 1px solid rgba(255,255,255,0.5);}
+
+  @keyframes pulsarSucesso {
+    0% { transform: scale(1.05); background: rgba(255, 214, 10, 0.4); }
+    100% { transform: scale(1); background: rgba(45, 106, 79, 0.3); }
+  }
+
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--grass-light); font-size: 12px; font-weight: 800; flex-shrink: 0; color: white; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Vai começar a pelada</div>
+    <h1>Sorteio de Times</h1>
+  </header>
+
+  <!-- Input escondido para selecionar a foto -->
+  <input type="file" id="inputFoto" accept="image/*" style="display: none;">
+
+  <div id="telaConfig">
+    <div class="card">
+      <label for="nomes">Cole os nomes dos jogadores (um por linha)</label>
+      <textarea id="nomes" placeholder="João&#10;Pedro&#10;Lucas&#10;Marcos..."></textarea>
+
+      <div class="marcacao-titulo">
+        <label style="margin:0;">Marcar nível e Foto (opcional)</label>
+        <span class="marcacao-dica">Clique no nome para nível, na 📸 para foto</span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="legenda" style="margin-top:15px;">
+        <span>⭐ melhor</span>
+        <span>🔻 pior</span>
+        <span>📸 adicionar foto</span>
+      </div>
+
+      <div class="controles-inferiores">
+        <div class="counter">
+          <span class="label">Nº times</span>
+          <button type="button" id="menos">−</button>
+          <span class="n" id="numTimes">2</span>
+          <button type="button" id="mais">+</button>
+        </div>
+        
+        <div class="seletores">
+          <div class="seletor-grupo">
+            <label style="margin:0; font-size: 11px;">Animação:</label>
+            <select id="estiloSorteio">
+              <option value="cartinha" selected>Cartinha (Com Foto)</option>
+              <option value="padrao">Roleta Clássica</option>
+              <option value="cego">Às Cegas (Suspense)</option>
+            </select>
+          </div>
+          <div class="seletor-grupo">
+            <label style="margin:0; font-size: 11px;">Velocidade:</label>
+            <select id="velocidadeSorteio">
+              <option value="0.3">Rápida ⚡</option>
+              <option value="1" selected>Normal ⏱️</option>
+              <option value="2.5">Lenta 🐢</option>
+            </select>
+          </div>
+          
+          <div class="grupo-narracao">
+            <label class="toggle-narracao">
+              <input type="checkbox" id="narrarSorteio" checked>
+              🎙️ Narrar Voz
+            </label>
+            <select id="seletorVoz">
+              <option value="">Carregando vozes...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="info" id="infoJogadores">0 jogadores</div>
+
+      <div class="erro" id="erro"></div>
+      <button class="btn-acao btn-principal" id="btnSortear">⚽ Sortear times</button>
+    </div>
+  </div>
+
+  <div id="telaResultados">
+    <button class="btn-acao" id="btnRevelarCego">👀 REVELAR TIMES</button>
+
+    <div id="urnaSorteio">
+      <div class="urna-titulo" id="urnaTitulo">Sorteando da Urna:</div>
+      <div id="urnaNomeTexto">?</div>
+      <div class="carta-container" id="cartaContainer">
+        <div class="carta-frente"></div>
+        <div class="carta-verso">
+          <img class="carta-foto-perfil" id="cartaFotoPerfil" src="" alt="Foto do jogador">
+          <div class="carta-icon" id="cartaIcone">⚽</div>
+          <div class="carta-nome" id="cartaNome">NOME</div>
+        </div>
+      </div>
+      <div class="urna-destino" id="urnaDestino">Preparando...</div>
+    </div>
+
+    <div class="area-exportacao" id="areaExportacao">
+      <div id="gridTimes"></div>
+    </div>
+    
+    <div class="botoes-finais">
+      <div class="botoes-row">
+        <button class="btn-acao btn-zap" id="btnCopiarZap">📱 Texto</button>
+        <button class="btn-acao btn-imagem" id="btnBaixarImagem">📸 Imagem</button>
+      </div>
+      <button class="btn-acao voltar" id="btnVoltar">⬅️ Voltar ao Início</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const telaConfig = document.getElementById('telaConfig');
+  const telaResultados = document.getElementById('telaResultados');
+  const gridTimes = document.getElementById('gridTimes');
+  const areaExportacao = document.getElementById('areaExportacao');
+  
+  const btnVoltar = document.getElementById('btnVoltar');
+  const btnCopiarZap = document.getElementById('btnCopiarZap');
+  const btnBaixarImagem = document.getElementById('btnBaixarImagem');
+  const btnRevelarCego = document.getElementById('btnRevelarCego');
+  
+  const urnaSorteio = document.getElementById('urnaSorteio');
+  const urnaNomeTexto = document.getElementById('urnaNomeTexto');
+  const cartaContainer = document.getElementById('cartaContainer');
+  const cartaNome = document.getElementById('cartaNome');
+  const cartaIcone = document.getElementById('cartaIcone');
+  const cartaFotoPerfil = document.getElementById('cartaFotoPerfil');
+  const urnaDestino = document.getElementById('urnaDestino');
+
+  const textarea = document.getElementById('nomes');
+  const numTimesEl = document.getElementById('numTimes');
+  const infoJogadores = document.getElementById('infoJogadores');
+  const erroEl = document.getElementById('erro');
+  const btnSortear = document.getElementById('btnSortear');
+  const chipsEl = document.getElementById('chips');
+  
+  const estiloSorteio = document.getElementById('estiloSorteio');
+  const seletorVelocidade = document.getElementById('velocidadeSorteio');
+  const chkNarracao = document.getElementById('narrarSorteio');
+  const seletorVoz = document.getElementById('seletorVoz');
+
+  const inputFoto = document.getElementById('inputFoto');
+  let fotosMemoria = {}; 
+  let jogadorSendoFotografado = null; 
+
+  let numTimes = 2;
+  let marcacoes = {}; 
+  let timesGerados = []; 
+  let vozesDisponiveis = [];
+
+  // --- ÁUDIO E VOZ ---
+  let audioCtx;
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  
+  function playTick() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime); osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.05); osc.stop(audioCtx.currentTime + 0.05);
+  }
+  
+  function playSuccess() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3); osc.stop(audioCtx.currentTime + 0.3);
+  }
+  
+  function playImpact() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'square'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime); osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5); osc.stop(audioCtx.currentTime + 0.5);
+  }
+  
+  // Função para carregar as vozes do sistema
+  function carregarVozes() {
+    if (!('speechSynthesis' in window)) {
+      seletorVoz.innerHTML = '<option value="">Voz não suportada</option>';
+      return;
+    }
+    
+    // Filtra apenas as vozes em Português
+    vozesDisponiveis = window.speechSynthesis.getVoices().filter(voz => voz.lang.includes('pt'));
+    seletorVoz.innerHTML = '';
+    
+    if(vozesDisponiveis.length === 0) {
+      seletorVoz.innerHTML = '<option value="">Voz Padrão do Sistema</option>';
+      return;
+    }
+    
+    vozesDisponiveis.forEach((voz, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = voz.name;
+      seletorVoz.appendChild(option);
+    });
+  }
+
+  // Alguns navegadores carregam as vozes de forma assíncrona
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = carregarVozes;
+    carregarVozes();
+  }
+
+  function falar(texto) {
+    if (chkNarracao.checked && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const fala = new SpeechSynthesisUtterance(texto);
+      fala.lang = 'pt-BR'; 
+      fala.rate = 1.1; // Velocidade ligeiramente ajustada para clareza
+      
+      // Aplica a voz escolhida pelo usuário, se existir
+      if(vozesDisponiveis.length > 0 && seletorVoz.value !== "") {
+          fala.voice = vozesDisponiveis[seletorVoz.value];
+      }
+      
+      window.speechSynthesis.speak(fala);
+    }
+  }
+
+  // Habilita/Desabilita o select dependendo do checkbox
+  chkNarracao.addEventListener('change', function() {
+      seletorVoz.disabled = !this.checked;
+      seletorVoz.style.opacity = this.checked ? '1' : '0.5';
+  });
+
+  // --- LÓGICA DAS FOTOS ---
+  inputFoto.addEventListener('change', function(e) {
+    if(e.target.files && e.target.files[0]) {
+      const urlTemp = URL.createObjectURL(e.target.files[0]);
+      fotosMemoria[jogadorSendoFotografado] = urlTemp;
+      renderChips(); 
+    }
+  });
+
+  // --- CONFIGURAÇÕES BÁSICAS ---
+  function contarJogadores() { return textarea.value.split('\n').map(n => n.trim()).filter(n => n.length > 0); }
+  function atualizarInfo() { const j = contarJogadores(); infoJogadores.textContent = j.length === 1 ? '1 jogador' : j.length + ' jogadores'; }
+  
+  function renderChips() {
+    const j = contarJogadores();
+    Object.keys(marcacoes).forEach(nome => { if (!j.includes(nome)) delete marcacoes[nome]; });
+    Object.keys(fotosMemoria).forEach(nome => { if (!j.includes(nome)) delete fotosMemoria[nome]; });
+    
+    chipsEl.innerHTML = '';
+    j.forEach(nome => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'chip-wrapper';
+      
+      const btnNome = document.createElement('button');
+      btnNome.type = 'button'; btnNome.className = 'chip'; btnNome.textContent = nome;
+      
+      if (marcacoes[nome] === 'melhor') { wrapper.classList.add('melhor'); btnNome.textContent = '⭐ ' + nome; }
+      if (marcacoes[nome] === 'pior') { wrapper.classList.add('pior'); btnNome.textContent = '🔻 ' + nome; }
+      
+      btnNome.addEventListener('click', () => {
+        if (!marcacoes[nome]) marcacoes[nome] = 'melhor';
+        else if (marcacoes[nome] === 'melhor') marcacoes[nome] = 'pior';
+        else delete marcacoes[nome];
+        renderChips();
+      });
+
+      const btnFoto = document.createElement('button');
+      btnFoto.type = 'button'; btnFoto.className = 'btn-foto';
+      btnFoto.title = "Adicionar foto do jogador";
+      
+      if(fotosMemoria[nome]) {
+        btnFoto.textContent = '✅';
+        btnFoto.classList.add('tem-foto');
+      } else {
+        btnFoto.textContent = '📸';
+      }
+
+      btnFoto.addEventListener('click', () => {
+        jogadorSendoFotografado = nome;
+        inputFoto.click(); 
+      });
+
+      wrapper.appendChild(btnNome);
+      wrapper.appendChild(btnFoto);
+      chipsEl.appendChild(wrapper);
+    });
+  }
+
+  textarea.addEventListener('input', () => { atualizarInfo(); renderChips(); });
+  document.getElementById('menos').addEventListener('click', () => { if (numTimes > 2) { numTimes--; numTimesEl.textContent = numTimes; } });
+  document.getElementById('mais').addEventListener('click', () => { if (numTimes < 10) { numTimes++; numTimesEl.textContent = numTimes; } });
+
+  function embaralhar(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function timeComMenosJogadores(times) { const minimo = Math.min(...times.map(t => t.length)); const cand = times.map((t, i) => i).filter(i => times[i].length === minimo); return cand[Math.floor(Math.random() * cand.length)]; }
+  function pausa(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // --- LÓGICA DE REVELAÇÃO ---
+  async function animacaoPadrao(liTime, jogadorFinal, candidatos, timeIndex, vel) {
+    urnaNomeTexto.style.display = 'block'; cartaContainer.style.display = 'none';
+    liTime.classList.add('destaque-recebendo');
+    urnaDestino.textContent = `Vaga para o Time ${timeIndex + 1}...`;
+    falar(`Time ${timeIndex + 1}`);
+    
+    for (let v = 0; v < 12; v++) {
+      urnaNomeTexto.textContent = candidatos[Math.floor(Math.random() * candidatos.length)];
+      playTick(); await pausa((50 + v * 15) * vel);
+    }
+    urnaNomeTexto.textContent = jogadorFinal.nome;
+    playSuccess();
+    falar(jogadorFinal.nome);
+    cravarNoCard(liTime, jogadorFinal);
+  }
+
+  async function animacaoCartinha(liTime, jogadorFinal, timeIndex, vel) {
+    urnaNomeTexto.style.display = 'none'; 
+    cartaContainer.style.display = 'block';
+    cartaContainer.classList.remove('girar');
+    
+    liTime.classList.add('destaque-recebendo');
+    urnaDestino.textContent = `Vaga para o Time ${timeIndex + 1}...`;
+    falar(`Time ${timeIndex + 1}`);
+    
+    cartaNome.textContent = jogadorFinal.nome;
+    
+    if(fotosMemoria[jogadorFinal.nome]) {
+      cartaFotoPerfil.src = fotosMemoria[jogadorFinal.nome];
+      cartaFotoPerfil.style.display = 'block';
+      cartaIcone.style.display = 'none';
+    } else {
+      cartaFotoPerfil.style.display = 'none';
+      cartaIcone.style.display = 'block';
+      if(jogadorFinal.tag === 'melhor') cartaIcone.textContent = '⭐';
+      else if(jogadorFinal.tag === 'pior') cartaIcone.textContent = '🔻';
+      else cartaIcone.textContent = '⚽';
+    }
+
+    cartaContainer.classList.add('tremer');
+    for (let v = 0; v < 6; v++) { playTick(); await pausa(200 * vel); }
+    cartaContainer.classList.remove('tremer');
+    
+    cartaContainer.classList.add('girar');
+    playSuccess();
+    falar(jogadorFinal.nome);
+    await pausa(1200 * vel); 
+    
+    cravarNoCard(liTime, jogadorFinal);
+  }
+
+  function animacaoCegaSetup(listasPorTime, times) {
+    urnaSorteio.style.display = 'none'; 
+    btnRevelarCego.style.display = 'block'; 
+    
+    times.forEach((time, tIdx) => {
+      time.forEach((jogador, rIdx) => {
+        const li = listasPorTime[tIdx].lista.children[rIdx];
+        li.classList.remove('vazio');
+        li.classList.add('cego-secreto');
+        li.querySelector('.nome').textContent = '???????';
+        li.dataset.nomeReal = jogador.nome; 
+        li.dataset.tagReal = jogador.tag;
+      });
+      listasPorTime[tIdx].contagemEl.textContent = `${time.length}/${time.length}`;
+    });
+    falar("Times formados às cegas. Pressione o botão para revelar.");
+  }
+
+  function cravarNoCard(liTime, jogadorFinal) {
+    const nomeSpan = liTime.querySelector('.nome');
+    nomeSpan.textContent = jogadorFinal.nome;
+    
+    if (jogadorFinal.tag === 'melhor') nomeSpan.insertAdjacentHTML('afterend', ' <span class="tag-icone">⭐</span>');
+    else if (jogadorFinal.tag === 'pior') nomeSpan.insertAdjacentHTML('afterend', ' <span class="tag-icone">🔻</span>');
+    
+    if(fotosMemoria[jogadorFinal.nome]) {
+       const img = liTime.querySelector('.li-foto');
+       img.src = fotosMemoria[jogadorFinal.nome];
+       img.style.display = 'block';
+       liTime.querySelector('.num').style.display = 'none'; 
+    }
+
+    liTime.classList.remove('vazio', 'destaque-recebendo', 'cego-secreto');
+    liTime.classList.add('revelado');
+  }
+
+  // --- FUNÇÃO PRINCIPAL DE SORTEIO ---
+  async function sortear() {
+    initAudio();
+    if(chkNarracao.checked && 'speechSynthesis' in window) window.speechSynthesis.resume(); 
+    
+    const jogadores = contarJogadores();
+    erroEl.style.display = 'none'; gridTimes.innerHTML = '';
+    btnVoltar.style.display = 'none'; btnCopiarZap.style.display = 'none'; btnBaixarImagem.style.display = 'none'; btnRevelarCego.style.display = 'none';
+    urnaSorteio.style.display = 'block'; urnaDestino.textContent = "Preparando sorteio...";
+
+    if (jogadores.length < numTimes) {
+      erroEl.textContent = `Você precisa de pelo menos ${numTimes} jogadores.`; erroEl.style.display = 'block';
+      urnaSorteio.style.display = 'none'; return;
+    }
+
+    const estilo = estiloSorteio.value;
+    const vel = parseFloat(seletorVelocidade.value);
+
+    telaConfig.style.display = 'none'; telaResultados.style.display = 'block';
+
+    const melhores = embaralhar(jogadores.filter(n => marcacoes[n] === 'melhor'));
+    const piores = embaralhar(jogadores.filter(n => marcacoes[n] === 'pior'));
+    const resto = embaralhar(jogadores.filter(n => !marcacoes[n]));
+    const times = Array.from({ length: numTimes }, () => []);
+
+    [...melhores, ...piores, ...resto].forEach(nome => {
+      const idx = timeComMenosJogadores(times);
+      times[idx].push({ nome, tag: marcacoes[nome] || null });
+    });
+    timesGerados = times; 
+
+    const listasPorTime = [];
+    times.forEach((time, idx) => {
+      const card = document.createElement('div'); card.className = 'time-card';
+      const titulo = document.createElement('div'); titulo.className = 'time-titulo';
+      titulo.innerHTML = `<span class="bola">⚽</span> Time ${idx + 1} <span class="contagem" style="color:var(--chalk-dim); font-weight:400; font-size:13px; margin-left:auto;">0/${time.length}</span>`;
+      const lista = document.createElement('ul'); lista.className = 'jogadores';
+      time.forEach((_, i) => {
+        const li = document.createElement('li'); li.className = 'vazio';
+        li.innerHTML = `<span class="num">${i + 1}</span><img class="li-foto" src="" alt=""><span class="nome">?</span>`;
+        lista.appendChild(li);
+      });
+      card.appendChild(titulo); card.appendChild(lista); gridTimes.appendChild(card);
+      listasPorTime.push({ lista, contagemEl: titulo.querySelector('.contagem'), total: time.length });
+    });
+
+    if (estilo === 'cego') {
+      animacaoCegaSetup(listasPorTime, times);
+      return; 
+    }
+
+    const maxRodadas = Math.max(...times.map(t => t.length));
+    const restantes = [...jogadores];
+
+    for (let rodada = 0; rodada < maxRodadas; rodada++) {
+      for (let t = 0; t < numTimes; t++) {
+        const jogador = times[t][rodada];
+        if (!jogador) continue;
+
+        const li = listasPorTime[t].lista.children[rodada];
+        const idxRestante = restantes.indexOf(jogador.nome);
+        if (idxRestante > -1) restantes.splice(idxRestante, 1);
+        const candidatos = restantes.length ? [...restantes, jogador.nome] : [jogador.nome];
+
+        if (estilo === 'padrao') {
+          await animacaoPadrao(li, jogador, candidatos, t, vel);
+        } else if (estilo === 'cartinha') {
+          await animacaoCartinha(li, jogador, t, vel);
+        }
+        
+        listasPorTime[t].contagemEl.textContent = `${rodada + 1}/${listasPorTime[t].total}`;
+        await pausa(400 * vel); 
+      }
+    }
+
+    urnaDestino.textContent = "Sorteio Concluído!";
+    finalizarSorteio();
+  }
+
+  // --- BOTÃO REVELAR (MODO CEGO) ---
+  btnRevelarCego.addEventListener('click', async () => {
+    initAudio();
+    btnRevelarCego.style.display = 'none'; 
+    const vel = parseFloat(seletorVelocidade.value);
+    const vagas = document.querySelectorAll('.cego-secreto');
+    
+    for (let i = 0; i < vagas.length; i++) {
+      const li = vagas[i];
+      const jogador = { nome: li.dataset.nomeReal, tag: li.dataset.tagReal === 'null' ? null : li.dataset.tagReal };
+      
+      li.querySelector('.nome').style.filter = 'none'; 
+      cravarNoCard(li, jogador);
+      playImpact();
+      
+      await pausa(300 * vel); 
+    }
+    finalizarSorteio();
+  });
+
+  function finalizarSorteio() {
+    falar("Sorteio finalizado! Divirtam-se na pelada.");
+    btnCopiarZap.style.display = 'flex';
+    btnBaixarImagem.style.display = 'flex';
+    btnVoltar.style.display = 'block';
+  }
+
+  // --- BOTÕES FINAIS ---
+  btnCopiarZap.addEventListener('click', () => {
+    let texto = "🏆 *SORTEIO DA PELADA* 🏆\n\n";
+    timesGerados.forEach((time, index) => {
+      texto += `⚽ *TIME ${index + 1}*\n`;
+      time.forEach(j => { let icone = j.tag === 'melhor' ? ' ⭐' : (j.tag === 'pior' ? ' 🔻' : ''); texto += `- ${j.nome}${icone}\n`; });
+      texto += `\n`;
+    });
+    navigator.clipboard.writeText(texto).then(() => {
+      const textoOriginal = btnCopiarZap.innerHTML; btnCopiarZap.innerHTML = '✅ Copiado!'; btnCopiarZap.style.background = '#128C7E';
+      setTimeout(() => { btnCopiarZap.innerHTML = textoOriginal; btnCopiarZap.style.background = '#25D366'; }, 3000);
+    });
+  });
+
+  btnBaixarImagem.addEventListener('click', () => {
+    const textoOriginal = btnBaixarImagem.innerHTML;
+    btnBaixarImagem.innerHTML = '⏳ Gerando...';
+    html2canvas(areaExportacao, { backgroundColor: '#081c15', scale: 2 }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'times-pelada.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btnBaixarImagem.innerHTML = '✅ Baixado!';
+      btnBaixarImagem.style.background = '#2b6cb0';
+      setTimeout(() => { btnBaixarImagem.innerHTML = textoOriginal; btnBaixarImagem.style.background = '#3a86ff'; }, 3000);
+    });
+  });
+
+  btnVoltar.addEventListener('click', () => { 
+    telaResultados.style.display = 'none'; 
+    urnaSorteio.style.display = 'none'; 
+    telaConfig.style.display = 'block'; 
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  });
+  
+  btnSortear.addEventListener('click', sortear);
+  atualizarInfo(); renderChips();
+</script>
+</body>
+</html>
