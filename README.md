@@ -64,34 +64,6 @@ index.html
 
 em um navegador moderno.
 
-## 🌐 Publicando no GitHub Pages
-
-1. Envie os arquivos para um repositório no GitHub.
-2. Abra **Settings → Pages**.
-3. Em **Build and deployment**, escolha **Deploy from a branch**.
-4. Selecione a branch `main`.
-5. Selecione a pasta `/ (root)`.
-6. Clique em **Save**.
-
-## 🗂️ Estrutura
-
-```text
-sorteio-times/
-├── index.html
-├── README.md
-├── 01-configuracao.png
-├── 02-modo-cego.png
-└── 03-resultado.png
-```
-
-## 🛠️ Tecnologias
-
-- HTML5
-- CSS3
-- JavaScript
-- Web Speech API
-- html2canvas
-
 ## 🎯 Objetivo
 
 A ideia é facilitar a organização de peladas sem precisar instalar aplicativo, criar conta ou configurar servidor.
